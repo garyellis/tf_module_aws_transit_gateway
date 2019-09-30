@@ -32,7 +32,7 @@ module "vpc" {
 }
 
 module "tgw" {
-  source = "../../../terraform-modules/transit-gateway"
+  source = "github.com/garyellis/tf_module_aws_transit_gateway"
 
   create_tgw              = true
   create_ram_share        = false
@@ -45,7 +45,7 @@ module "tgw" {
 }
 
 module "tgw_vpc_attachment" {
-  source = "../../../terraform-modules/transit-gateway"
+  source = "github.com/garyellis/tf_module_aws_transit_gateway"
 
   create_tgw_attachment     = true
   tgw_id                    = module.tgw.id
@@ -63,7 +63,7 @@ module "tgw_vpc_attachment" {
 
 Create a spoke vpc, transit gateway vpc attachment. (terraform variable values are not here for brevity.)
 ```
-### setup our shared services vpc
+### create our spoke vpc
 data "aws_availability_zones" "azs" {}
 
 locals {
@@ -85,7 +85,7 @@ module "vpc" {
 
 # lookup the tgw id or pass it in as an environment variable
 module "tgw_vpc_attachment" {
-  source = "../../../terraform-modules/transit-gateway"
+  source = "github.com/garyellis/tf_module_aws_transit_gateway"
 
   create_tgw_attachment     = true
   tgw_id                    = "tgw-0ab31c7fbfa1a1c85"

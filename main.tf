@@ -49,23 +49,6 @@ resource "aws_ram_principal_association" "tgw" {
   resource_share_arn = local.resource_share_arn
 }
 
-/*
-#### create route tables and routes
-resource "aws_ec2_transit_gateway_route_table" "tgw" {
-  transit_gateway_id = local.tgw_id
-  tags = var.tags
-}
-
-
-resource "aws_ec2_transit_gateway_route" "tgw" {
-  count = length(var.tgw_routes)
-
-  destination_cidr_block = ""
-  transit_gateway_attachment_id = ""
-  transit_gateway_route_table_id = ""
-}
-*/
-
 
 #### transit gateway vpn customer gateway
 resource "aws_customer_gateway" "tgw" {
