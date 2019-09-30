@@ -10,7 +10,7 @@ This terraform module manages AWS Transit Gateway Resources. It supports the fol
 ## Usage
 
 Create a vpc, transit gateway, vpc attachment and vpn attachment from a "hub" account. (terraform variable values are not here for brevity.)
-```bash
+```
 ### setup our shared services vpc
 data "aws_availability_zones" "azs" {}
 
@@ -62,7 +62,7 @@ module "tgw_vpc_attachment" {
 
 
 Create a spoke vpc, transit gateway vpc attachment. (terraform variable values are not here for brevity.)
-```bash
+```
 ### setup our shared services vpc
 data "aws_availability_zones" "azs" {}
 
