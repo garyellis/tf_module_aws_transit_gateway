@@ -108,6 +108,12 @@ variable "vpc_attachment_default_route_table_propagation" {
   default = false
 }
 
+variable "tgw_attachment_id" {
+  description = "an existing tgw attachment id. Used for creating route tables for cross account tgw vpc attachments"
+  type = string
+  default = ""
+}
+
 variable "create_tgw_route_table" {
   description = "create a transit gateway route table"
   type = bool
@@ -118,6 +124,12 @@ variable "tgw_route_table_routes" {
   description = "transit gateway table routes"
   type = list(string)
   default = []
+}
+
+variable "create_vpc_routes" {
+  description = "create routes on vpc route tables"
+  type = bool
+  default = false
 }
 
 variable "vpc_route_table_ids" {

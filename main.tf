@@ -6,6 +6,8 @@ resource "aws_ec2_transit_gateway" "tgw" {
   amazon_side_asn                 = null
   default_route_table_association = var.tgw_default_route_table_association
   default_route_table_propagation = var.tgw_default_route_table_propagation
+  # parameterize auto accept shared attachments
+  auto_accept_shared_attachments  = "enable"
   tags                            = merge(map("Name", var.name), var.tags)
 }
 
@@ -20,11 +22,12 @@ resource "aws_ram_resource_share" "tgw" {
   count = var.create_tgw && var.create_ram_share ? 1 : 0
 
   name = var.name
+  allow_external_principals = true
   tags = merge(map("Name", var.name), var.tags)
 }
 
 locals {
-  resource_share_arn = var.create_ram_share ? join("", aws_ram_resource_share.tgw.*.arn) : join("", list(var.ram_share_arn))
+  resource_share_arn = var.create_ram_share ? join("", aws_ram_resource_share.tgw.*.id) : join("", list(var.ram_share_arn))
 }
 
 resource "aws_ram_resource_association" "tgw_ram_share" {
@@ -33,6 +36,8 @@ resource "aws_ram_resource_association" "tgw_ram_share" {
   resource_arn       = local.tgw_arn
   resource_share_arn = local.resource_share_arn
 }
+
+
 
 resource "aws_ram_resource_association" "tgw_use_existing_ram_share" {
   count = var.create_tgw && var.use_existing_ram_share ? 1 : 0
@@ -72,7 +77,7 @@ resource "aws_vpn_connection" "tgw" {
 # an aws vpn connection associated directly to a tgw id. its tags do not propagated to the attachment resource under transit gateway attachments
 
 
-#### setup the vpc attachment and routing
+#### setup the vpc attachment and routing. the transit gateway route table and routes are created in a separate instance from the vpc routes
 resource "aws_ec2_transit_gateway_vpc_attachment" "tgw" {
   count = var.create_tgw_attachment ? 1 : 0
 
@@ -84,38 +89,43 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "tgw" {
   tags                                            = merge(map("Name", var.name), var.tags)
 }
 
+locals {
+  tgw_attachment_id = length(var.tgw_attachment_id) > 0 ? var.tgw_attachment_id :  join("", aws_ec2_transit_gateway_vpc_attachment.tgw.*.id)
+}
+
 resource "aws_ec2_transit_gateway_route_table" "tgw" {
-  count = var.create_tgw_attachment && var.create_tgw_route_table ? 1 : 0
+  count = var.create_tgw_route_table ? 1 : 0
 
   transit_gateway_id = local.tgw_id
   tags = merge(map("Name", var.name), var.tags)
 }
 
 resource "aws_ec2_transit_gateway_route_table_association" "tgw" {
-  count = var.create_tgw_attachment && var.create_tgw_route_table ? 1 : 0
+  count = var.create_tgw_route_table ? 1 : 0
 
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.tgw.0.id
+  transit_gateway_attachment_id  = local.tgw_attachment_id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.tgw.0.id
 }
 
 resource "aws_ec2_transit_gateway_route_table_propagation" "tgw" {
-  count = var.create_tgw_attachment && var.create_tgw_route_table ? 1 : 0
+  count = var.create_tgw_route_table ? 1 : 0
 
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.tgw.0.id
+  transit_gateway_attachment_id  = local.tgw_attachment_id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.tgw.0.id
 }
 
+# needs to take default route table into consideration
 resource "aws_ec2_transit_gateway_route" "tgw" {
-  count = var.create_tgw_attachment && var.create_tgw_route_table ? length(var.tgw_route_table_routes) : 0
+  count = var.create_tgw_route_table ? length(var.tgw_route_table_routes) : 0
 
   destination_cidr_block         = element(var.tgw_route_table_routes, count.index)
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.tgw.0.id
+  transit_gateway_attachment_id  = local.tgw_attachment_id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.tgw.0.id
 }
 
 
 data "aws_route_tables" "vpc" {
-  count = var.create_tgw_attachment && var.create_tgw_route_table ? 1 : 0
+  count = var.create_vpc_routes ? 1 : 0
   vpc_id = var.vpc_attachment_vpc_id
 }
 
@@ -132,7 +142,7 @@ locals {
 }
 
 resource "aws_route" "vpc" {
-  count = var.create_tgw_attachment ? length(local.vpc_routes) : 0
+  count = var.create_vpc_routes ? length(local.vpc_routes) : 0
 
   route_table_id         = lookup(local.vpc_routes[count.index], "route_table_id")
   destination_cidr_block = lookup(local.vpc_routes[count.index], "destination_cidr_block")
